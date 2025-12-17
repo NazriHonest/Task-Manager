@@ -1,0 +1,298 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                      String                   @id @default(uuid())
+  email                   String                   @unique
+  password                String
+  name                    String?
+  avatar                  String?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  isVerified              Boolean                  @default(false)
+  resetToken              String?
+  resetTokenExpiry        DateTime?
+  verificationToken       String?
+  activityLogs            ActivityLog[]
+  Attachment              Attachment[]
+  Category                Category[]
+  comments                Comment[]
+  notificationPreferences NotificationPreferences?
+  notifications           Notification[]
+  ProjectMember           ProjectMember[]
+  projects                Project[]
+  RefreshToken            RefreshToken[]
+  Tag                     Tag[]
+  tasks                   Task[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model Task {
+  id           String         @id @default(uuid())
+  title        String
+  description  String?
+  status       TaskStatus     @default(PENDING)
+  priority     Priority       @default(MEDIUM)
+  dueDate      DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  userId       String
+  projectId    String?
+  categoryId   String?
+  attachments  Attachment[]
+  comments     Comment[]
+  Notification Notification[]
+  subtasks     Subtask[]
+  tags         TaskTag[]
+  category     Category?      @relation(fields: [categoryId], references: [id])
+  project      Project?       @relation(fields: [projectId], references: [id])
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([dueDate])
+  @@index([status])
+  @@index([createdAt])
+  @@index([completedAt])
+  @@map("tasks")
+}
+
+model Project {
+  id            String          @id @default(uuid())
+  name          String
+  description   String?
+  color         String?         @default("#6200EE")
+  progress      Float           @default(0)
+  startDate     DateTime?
+  endDate       DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  userId        String
+  notifications Notification[]
+  members       ProjectMember[]
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks         Task[]
+
+  @@index([createdAt])
+  @@map("projects")
+}
+
+model ActivityLog {
+  id         String   @id @default(uuid())
+  userId     String
+  action     String
+  entityId   String?
+  entityType String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([entityType])
+  @@map("activity_logs")
+}
+
+model ProjectMember {
+  id        String   @id @default(uuid())
+  projectId String
+  userId    String
+  role      String   @default("MEMBER")
+  joinedAt  DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  color     String   @default("#6200EE")
+  icon      String?
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+
+  @@unique([userId, name])
+  @@map("categories")
+}
+
+model Tag {
+  id        String    @id @default(uuid())
+  name      String
+  color     String    @default("#757575")
+  createdAt DateTime  @default(now())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks     TaskTag[]
+
+  @@unique([userId, name])
+  @@map("tags")
+}
+
+model TaskTag {
+  id     String @id @default(uuid())
+  taskId String
+  tagId  String
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, tagId])
+  @@map("task_tags")
+}
+
+model Subtask {
+  id          String   @id @default(uuid())
+  title       String
+  isCompleted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("subtasks")
+}
+
+model Comment {
+  id            String         @id @default(uuid())
+  content       String
+  createdAt     DateTime       @default(now())
+  taskId        String
+  userId        String
+  mentions      String?
+  metadata      Json?
+  parentId      String?
+  updatedAt     DateTime       @updatedAt
+  attachments   Attachment[]
+  parent        Comment?       @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       Comment[]      @relation("CommentReplies")
+  task          Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([parentId])
+  @@map("comments")
+}
+
+model Attachment {
+  id        String   @id @default(uuid())
+  filename  String
+  filepath  String
+  filetype  String
+  filesize  Int
+  createdAt DateTime @default(now())
+  taskId    String
+  userId    String
+  commentId String?
+  isPublic  Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([commentId])
+  @@map("attachments")
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  title       String
+  message     String
+  type        NotificationType
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  userId      String
+  taskId      String?
+  commentId   String?
+  isEmailSent Boolean          @default(false)
+  metadata    Json?
+  projectId   String?
+  updatedAt   DateTime         @updatedAt
+  comment     Comment?         @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  project     Project?         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task        Task?            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([type])
+  @@map("notifications")
+}
+
+model NotificationPreferences {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  email          Boolean  @default(true)
+  push           Boolean  @default(true)
+  inApp          Boolean  @default(true)
+  taskAssigned   Boolean  @default(true)
+  taskUpdated    Boolean  @default(true)
+  taskCompleted  Boolean  @default(true)
+  taskOverdue    Boolean  @default(true)
+  commentAdded   Boolean  @default(true)
+  commentMention Boolean  @default(true)
+  projectInvite  Boolean  @default(true)
+  projectUpdate  Boolean  @default(true)
+  systemAlert    Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_UPDATED
+  TASK_COMPLETED
+  TASK_OVERDUE
+  TASK_REMINDER
+  COMMENT_ADDED
+  COMMENT_MENTION
+  PROJECT_INVITE
+  PROJECT_UPDATE
+  SYSTEM_ALERT
+}

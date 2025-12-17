@@ -1,0 +1,61 @@
+# version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14-alpine
+    container_name: taskmgmt-postgres
+    environment:
+      POSTGRES_USER: postgres            
+      POSTGRES_PASSWORD: taskpass123
+      POSTGRES_DB: task_management_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Simplified healthcheck
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    build: .
+    container_name: taskmgmt-api
+    ports:
+      - "8001:8001"
+    environment:
+      # Use 'postgres' as username (default) instead of 'task_user' to avoid issues
+      DATABASE_URL: postgresql://postgres:taskpass123@postgres:5432/task_management_db
+      NODE_ENV: development
+      PORT: 8001
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+    # Simplified command - run migrations first, then dev server
+    command: npm start
+    restart: unless-stopped
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: taskmgmt-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@taskapp.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  pgadmin_data:
