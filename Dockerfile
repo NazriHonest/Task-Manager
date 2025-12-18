@@ -1,44 +1,48 @@
+
 # backend/Dockerfile
 FROM node:20-alpine
 
 WORKDIR /app
 
-# 1. Copy minimal files first (better caching)
+# Copy package files and Prisma schema FIRST (better layer caching)
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# 2. Install ALL dependencies for build phase
+# Install ALL dependencies for build phase
 RUN npm ci
 
-# ⭐⭐⭐ CRITICAL FIX FOR RENDER ⭐⭐⭐
-# Prisma needs DATABASE_URL during build for schema validation
-# Render doesn't pass runtime env vars during build
-# So we set a DUMMY URL that Prisma can use
+# Set dummy DATABASE_URL for Prisma generate (required during build)
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 
-# 3. Now prisma generate will work!
+# Generate Prisma client
 RUN npx prisma generate
 
-# 4. Copy rest of source code
+# Copy source code
 COPY . .
 
-# 5. Build TypeScript (requires dev dependencies installed earlier)
+# Build TypeScript to JavaScript
 RUN npm run build
 
-# 6. Clean up: Reinstall only production dependencies
-# This reduces image size significantly
+# Install ONLY production dependencies (clean install, reduces image size)
 RUN npm ci --only=production
+
+# Create non-root user for security (important for production)
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+USER nodejs
 
 EXPOSE 8000
 
-# Health check
+# Health check (pointing to correct endpoint - /health not /api/health)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8000/api/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8000/health || exit 1
 
-# Start the built JavaScript
-CMD ["node", "dist/server.js"]
+# Start with Prisma migration then start server
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
 
-# # backend/Dockerfile
+
+
+# # # backend/Dockerfile
 # FROM node:20-alpine
 
 # WORKDIR /app
@@ -67,3 +71,5 @@ CMD ["node", "dist/server.js"]
 
 # # Start command
 # CMD ["npm", "start"]
+
+
