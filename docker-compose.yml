@@ -24,7 +24,7 @@ services:
     build: .
     container_name: taskmgmt-api
     ports:
-      - "8001:8000"
+      - "8000:8000"
     environment:
       # Use 'postgres' as username (default) instead of 'task_user' to avoid issues
       DATABASE_URL: postgresql://postgres:taskpass123@postgres:5432/task_management_db
