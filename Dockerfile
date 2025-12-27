@@ -14,7 +14,8 @@ RUN npx prisma generate
 COPY . .
 
 # Build TypeScript
-RUN npm run build
+# RUN npm run build
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npm run build
 
 # Instead of re-running npm ci (which deletes things), 
 # just prune the dev dependencies if you really want to save space.
