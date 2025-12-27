@@ -8,7 +8,7 @@ import {
   TaskAttachmentsParams
 } from '../validators/attachment.validator';
 import { formatFileSize } from '../middleware/upload.middleware';
-import { supabase } from '../../lib/supabase'; // Make sure this path is correct
+import { supabase } from '../lib/supabase'; // Make sure this path is correct
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 
