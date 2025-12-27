@@ -29,9 +29,9 @@ yarn-error.log
 logs/
 
 # Uploads
-uploads/
-tmp/
-temp/
+# uploads/
+# tmp/
+# temp/
 
 # OS
 .DS_Store
