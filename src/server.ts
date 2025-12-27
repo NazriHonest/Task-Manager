@@ -8,21 +8,21 @@ import multer from 'multer';
 import { prisma } from '../lib/prisma'; // Adjust path to your prisma.ts file
 
 // Import WebSocket setup
-import WebSocketServer from './lib/websocket.js';
-import WebSocketController from './controllers/websocket.controller.js';
+import WebSocketServer from './lib/websocket';
+import WebSocketController from './controllers/websocket.controller';
 
 // Import routes
-import authRoutes from './routes/auth.routes.js';
-import userRoutes from './routes/user.routes.js';
-import taskRoutes from './routes/task.routes.js';
-import projectRoutes from './routes/project.routes.js';
-import categoryRoutes from './routes/category.routes.js';
-import tagRoutes from './routes/tag.routes.js';
-import commentRoutes from './routes/comment.routes.js';
-import attachmentRoutes from './routes/attachment.routes.js';
-import dashboardRoutes from './routes/dashboard.routes.js';
-import websocketRoutes from './routes/websocket.routes.js';
-import notificationRoutes from './routes/notification.routes.js';
+import authRoutes from './routes/auth.routes';
+import userRoutes from './routes/user.routes';
+import taskRoutes from './routes/task.routes';
+import projectRoutes from './routes/project.routes';
+import categoryRoutes from './routes/category.routes';
+import tagRoutes from './routes/tag.routes';
+import commentRoutes from './routes/comment.routes';
+import attachmentRoutes from './routes/attachment.routes';
+import dashboardRoutes from './routes/dashboard.routes';
+import websocketRoutes from './routes/websocket.routes';
+import notificationRoutes from './routes/notification.routes';
 
 dotenv.config();
 
