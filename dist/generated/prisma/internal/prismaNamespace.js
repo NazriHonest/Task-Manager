@@ -48,7 +48,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.defineExtension = exports.QueryMode = exports.JsonNullValueFilter = exports.NullsOrder = exports.NullableJsonNullValueInput = exports.SortOrder = exports.NotificationPreferencesScalarFieldEnum = exports.NotificationScalarFieldEnum = exports.AttachmentScalarFieldEnum = exports.CommentScalarFieldEnum = exports.SubtaskScalarFieldEnum = exports.TaskTagScalarFieldEnum = exports.TagScalarFieldEnum = exports.CategoryScalarFieldEnum = exports.ProjectMemberScalarFieldEnum = exports.ActivityLogScalarFieldEnum = exports.ProjectScalarFieldEnum = exports.TaskScalarFieldEnum = exports.RefreshTokenScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.prismaVersion = exports.getExtensionContext = exports.Decimal = exports.Sql = exports.raw = exports.join = exports.empty = exports.sql = exports.PrismaClientValidationError = exports.PrismaClientInitializationError = exports.PrismaClientRustPanicError = exports.PrismaClientUnknownRequestError = exports.PrismaClientKnownRequestError = void 0;
+exports.defineExtension = exports.JsonNullValueFilter = exports.NullsOrder = exports.QueryMode = exports.NullableJsonNullValueInput = exports.SortOrder = exports.NotificationPreferencesScalarFieldEnum = exports.NotificationScalarFieldEnum = exports.AttachmentScalarFieldEnum = exports.CommentScalarFieldEnum = exports.SubtaskScalarFieldEnum = exports.TaskTagScalarFieldEnum = exports.TagScalarFieldEnum = exports.CategoryScalarFieldEnum = exports.ProjectMemberScalarFieldEnum = exports.ActivityLogScalarFieldEnum = exports.ProjectScalarFieldEnum = exports.TaskScalarFieldEnum = exports.RefreshTokenScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.prismaVersion = exports.getExtensionContext = exports.Decimal = exports.Sql = exports.raw = exports.join = exports.empty = exports.sql = exports.PrismaClientValidationError = exports.PrismaClientInitializationError = exports.PrismaClientRustPanicError = exports.PrismaClientUnknownRequestError = exports.PrismaClientKnownRequestError = void 0;
 const runtime = __importStar(require("@prisma/client/runtime/client"));
 /**
  * Prisma Errors
@@ -122,6 +122,9 @@ exports.ModelName = {
  * Enums
  */
 exports.TransactionIsolationLevel = runtime.makeStrictEnum({
+    ReadUncommitted: 'ReadUncommitted',
+    ReadCommitted: 'ReadCommitted',
+    RepeatableRead: 'RepeatableRead',
     Serializable: 'Serializable'
 });
 exports.UserScalarFieldEnum = {
@@ -278,6 +281,10 @@ exports.NullableJsonNullValueInput = {
     DbNull: exports.DbNull,
     JsonNull: exports.JsonNull
 };
+exports.QueryMode = {
+    default: 'default',
+    insensitive: 'insensitive'
+};
 exports.NullsOrder = {
     first: 'first',
     last: 'last'
@@ -286,10 +293,6 @@ exports.JsonNullValueFilter = {
     DbNull: exports.DbNull,
     JsonNull: exports.JsonNull,
     AnyNull: exports.AnyNull
-};
-exports.QueryMode = {
-    default: 'default',
-    insensitive: 'insensitive'
 };
 exports.defineExtension = runtime.Extensions.defineExtension;
 //# sourceMappingURL=prismaNamespace.js.map

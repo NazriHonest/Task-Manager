@@ -48,7 +48,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.QueryMode = exports.JsonNullValueFilter = exports.NullsOrder = exports.NullableJsonNullValueInput = exports.SortOrder = exports.NotificationPreferencesScalarFieldEnum = exports.NotificationScalarFieldEnum = exports.AttachmentScalarFieldEnum = exports.CommentScalarFieldEnum = exports.SubtaskScalarFieldEnum = exports.TaskTagScalarFieldEnum = exports.TagScalarFieldEnum = exports.CategoryScalarFieldEnum = exports.ProjectMemberScalarFieldEnum = exports.ActivityLogScalarFieldEnum = exports.ProjectScalarFieldEnum = exports.TaskScalarFieldEnum = exports.RefreshTokenScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.Decimal = void 0;
+exports.JsonNullValueFilter = exports.NullsOrder = exports.QueryMode = exports.NullableJsonNullValueInput = exports.SortOrder = exports.NotificationPreferencesScalarFieldEnum = exports.NotificationScalarFieldEnum = exports.AttachmentScalarFieldEnum = exports.CommentScalarFieldEnum = exports.SubtaskScalarFieldEnum = exports.TaskTagScalarFieldEnum = exports.TagScalarFieldEnum = exports.CategoryScalarFieldEnum = exports.ProjectMemberScalarFieldEnum = exports.ActivityLogScalarFieldEnum = exports.ProjectScalarFieldEnum = exports.TaskScalarFieldEnum = exports.RefreshTokenScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.Decimal = void 0;
 const runtime = __importStar(require("@prisma/client/runtime/index-browser"));
 exports.Decimal = runtime.Decimal;
 exports.NullTypes = {
@@ -94,6 +94,9 @@ exports.ModelName = {
  * Enums
  */
 exports.TransactionIsolationLevel = {
+    ReadUncommitted: 'ReadUncommitted',
+    ReadCommitted: 'ReadCommitted',
+    RepeatableRead: 'RepeatableRead',
     Serializable: 'Serializable'
 };
 exports.UserScalarFieldEnum = {
@@ -250,6 +253,10 @@ exports.NullableJsonNullValueInput = {
     DbNull: 'DbNull',
     JsonNull: 'JsonNull'
 };
+exports.QueryMode = {
+    default: 'default',
+    insensitive: 'insensitive'
+};
 exports.NullsOrder = {
     first: 'first',
     last: 'last'
@@ -258,9 +265,5 @@ exports.JsonNullValueFilter = {
     DbNull: 'DbNull',
     JsonNull: 'JsonNull',
     AnyNull: 'AnyNull'
-};
-exports.QueryMode = {
-    default: 'default',
-    insensitive: 'insensitive'
 };
 //# sourceMappingURL=prismaNamespaceBrowser.js.map

@@ -9,11 +9,6 @@ yarn-error.log
 .env.production
 .env.development
 
-# Build outputs
-dist/
-build/
-.coverage/
-
 # IDE
 .vscode/
 .idea/

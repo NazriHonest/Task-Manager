@@ -30,7 +30,17 @@ class EmailService {
             return true;
         }
         catch (error) {
-            console.error('Email sending error:', error);
+            if (error.responseCode === 535) {
+                console.error('Email sending error: Authentication failed. Please check your email credentials in the .env file.');
+                console.error('For Gmail, make sure you have:');
+                console.error('- Enabled 2-factor authentication');
+                console.error('- Generated an App Password (not your regular Gmail password)');
+                console.error('- Used the App Password in the SMTP_PASS environment variable');
+                console.error('- More info: https://support.google.com/mail/?p=BadCredentials');
+            }
+            else {
+                console.error('Email sending error:', error.message || error);
+            }
             return false;
         }
     }

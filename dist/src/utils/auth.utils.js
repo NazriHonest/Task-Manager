@@ -74,33 +74,29 @@ class AuthUtils {
         }
         return authHeader.split(' ')[1];
     }
-    // Validate password strength
+    // Validate password strength (adjusted for lowercase conversion)
     static validatePasswordStrength(password) {
         if (password.length < 6) {
             return { isValid: false, message: 'Password must be at least 6 characters long' };
         }
-        if (!/[A-Z]/.test(password)) {
-            return { isValid: false, message: 'Password must contain at least one uppercase letter' };
-        }
-        if (!/[a-z]/.test(password)) {
-            return { isValid: false, message: 'Password must contain at least one lowercase letter' };
+        if (!/[A-Za-z]/.test(password)) {
+            return { isValid: false, message: 'Password must contain at least one letter' };
         }
         if (!/\d/.test(password)) {
             return { isValid: false, message: 'Password must contain at least one number' };
         }
         return { isValid: true };
     }
-    // Generate random password
+    // Generate random password (lowercase for consistency)
     static generateRandomPassword(length = 12) {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
         let password = '';
-        // Ensure at least one of each required character type
-        password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)];
+        // Ensure at least one of each required character type (lowercase)
         password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
         password += '0123456789'[Math.floor(Math.random() * 10)];
         password += '!@#$%^&*'[Math.floor(Math.random() * 8)];
-        // Fill the rest with random characters
-        for (let i = 4; i < length; i++) {
+        // Fill the rest with random lowercase characters
+        for (let i = 3; i < length; i++) {
             password += chars[Math.floor(Math.random() * chars.length)];
         }
         // Shuffle the password

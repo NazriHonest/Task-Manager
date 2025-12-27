@@ -10,6 +10,8 @@ class AuthController {
     static async register(req, res) {
         try {
             const { name, email, password } = req.body;
+            // Convert password to lowercase as per requirements
+            const lowerCasePassword = password.toLowerCase();
             // Check if user already exists
             const existingUser = await prisma_1.prisma.user.findUnique({
                 where: { email }
@@ -21,7 +23,7 @@ class AuthController {
                 });
             }
             // Hash password
-            const hashedPassword = await auth_utils_1.AuthUtils.hashPassword(password);
+            const hashedPassword = await auth_utils_1.AuthUtils.hashPassword(lowerCasePassword);
             // Generate verification token
             const verificationToken = auth_utils_1.AuthUtils.generateVerificationToken();
             // Create user
@@ -85,6 +87,8 @@ class AuthController {
     static async login(req, res) {
         try {
             const { email, password } = req.body;
+            // Convert password to lowercase to match registration
+            const lowerCasePassword = password.toLowerCase();
             // Find user
             const user = await prisma_1.prisma.user.findUnique({
                 where: { email }
@@ -103,7 +107,7 @@ class AuthController {
                 });
             }
             // Check password
-            const isPasswordValid = await auth_utils_1.AuthUtils.comparePassword(password, user.password);
+            const isPasswordValid = await auth_utils_1.AuthUtils.comparePassword(lowerCasePassword, user.password);
             if (!isPasswordValid) {
                 return res.status(401).json({
                     status: 'error',
@@ -268,8 +272,10 @@ class AuthController {
                     message: 'Invalid or expired reset token'
                 });
             }
+            // Convert new password to lowercase for consistency
+            const lowerCasePassword = password.toLowerCase();
             // Hash new password
-            const hashedPassword = await auth_utils_1.AuthUtils.hashPassword(password);
+            const hashedPassword = await auth_utils_1.AuthUtils.hashPassword(lowerCasePassword);
             // Update password and clear reset token
             await prisma_1.prisma.user.update({
                 where: { id: user.id },

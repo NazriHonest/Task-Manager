@@ -95,16 +95,20 @@ const changePassword = async (req, res) => {
                 message: 'User not found'
             });
         }
+        // Convert password to lowercase for comparison consistency
+        const lowerCaseCurrentPassword = currentPassword.toLowerCase();
         // Verify current password using AuthUtils class
-        const isPasswordValid = await auth_utils_1.AuthUtils.comparePassword(currentPassword, user.password);
+        const isPasswordValid = await auth_utils_1.AuthUtils.comparePassword(lowerCaseCurrentPassword, user.password);
         if (!isPasswordValid) {
             return res.status(401).json({
                 status: 'error',
                 message: 'Current password is incorrect'
             });
         }
+        // Convert new password to lowercase for consistency
+        const lowerCaseNewPassword = newPassword.toLowerCase();
         // Hash new password using AuthUtils class
-        const hashedPassword = await auth_utils_1.AuthUtils.hashPassword(newPassword);
+        const hashedPassword = await auth_utils_1.AuthUtils.hashPassword(lowerCaseNewPassword);
         // Update password
         await prisma_1.prisma.user.update({
             where: { id: userId },
@@ -185,8 +189,10 @@ const deleteAccount = async (req, res) => {
                 message: 'User not found'
             });
         }
+        // Convert password to lowercase for comparison consistency
+        const lowerCasePassword = password.toLowerCase();
         // Verify password using AuthUtils class
-        const isPasswordValid = await auth_utils_1.AuthUtils.comparePassword(password, user.password);
+        const isPasswordValid = await auth_utils_1.AuthUtils.comparePassword(lowerCasePassword, user.password);
         if (!isPasswordValid) {
             return res.status(401).json({
                 status: 'error',

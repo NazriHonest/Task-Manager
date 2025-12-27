@@ -2,12 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteAccountSchema = exports.resendVerificationSchema = exports.changePasswordSchema = exports.updateProfileSchema = exports.resetPasswordSchema = exports.forgotPasswordSchema = exports.refreshTokenSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
-// Password validation regex
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
+// Password validation regex (adjusted for lowercase conversion)
+const passwordRegex = /^(?=.*[a-z])(?=.*\d).+$/;
 // Common password validation
 const passwordValidation = zod_1.z.string()
     .min(6, 'Password must be at least 6 characters')
-    .regex(passwordRegex, 'Password must contain at least one uppercase letter, one lowercase letter, and one number');
+    .regex(passwordRegex, 'Password must contain at least one letter and one number');
 // Register schema
 exports.registerSchema = zod_1.z.object({
     body: zod_1.z.object({
