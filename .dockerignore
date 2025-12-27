@@ -25,9 +25,9 @@ build/
 .gitignore
 
 # Docker
-Dockerfile*
-docker-compose*
-.dockerignore
+# Dockerfile*
+# docker-compose*
+# .dockerignore
 
 # Logs
 *.log
