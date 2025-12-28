@@ -24,15 +24,16 @@ export const formatFileSize = (bytes: number): string => {
 
 // ================ FILE FILTER ================
 
+// In upload.middleware.ts, update the fileFilter function:
 const fileFilter = (
   req: Request,
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
-  // Accept all file types for now, or add specific filters
+  // Accept all file types or add specific filters
   const allowedTypes = [
     // Images
-    'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/jpg',
     // Documents
     'application/pdf', 
     'application/msword',
@@ -45,13 +46,25 @@ const fileFilter = (
     // Archives
     'application/zip', 'application/x-rar-compressed', 'application/x-tar', 'application/gzip',
     // Code files
-    'application/json', 'text/javascript', 'text/html', 'text/css', 'text/x-python'
+    'application/json', 'text/javascript', 'text/html', 'text/css', 'text/x-python',
+    // Allow octet-stream for unknown types
+    'application/octet-stream'
   ];
 
-  if (allowedTypes.includes(file.mimetype)) {
+  // Extract file extension for additional validation
+  const fileExt = path.extname(file.originalname).toLowerCase();
+  const allowedExtensions = [
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg',
+    '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv',
+    '.zip', '.rar', '.tar', '.gz',
+    '.json', '.js', '.html', '.css', '.py'
+  ];
+
+  // Check if MIME type is allowed OR file extension is allowed
+  if (allowedTypes.includes(file.mimetype) || allowedExtensions.includes(fileExt)) {
     cb(null, true);
   } else {
-    cb(new Error(`File type ${file.mimetype} not allowed. Please upload a valid file.`));
+    cb(new Error(`File type ${file.mimetype} (${fileExt}) not allowed. Please upload a valid file.`));
   }
 };
 
@@ -78,7 +91,7 @@ export const uploadMultiple = multer({
     fileSize: 50 * 1024 * 1024, // 50MB per file
     files: 10 // Max 10 files at once
   }
-}).array('files', 10);
+}).array('files', 5);
 
 // ================ MIDDLEWARE WRAPPERS ================
 
