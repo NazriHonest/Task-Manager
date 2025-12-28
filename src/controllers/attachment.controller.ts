@@ -85,7 +85,7 @@ export const uploadAttachment = async (req: AuthRequest, res: Response) => {
             filepath: filePath,
             filetype: file.mimetype,
             filesize: file.size,
-            isPublic: body.isPublic || false,
+            isPublic: String(body.isPublic) === 'true',
             taskId,
             userId,
             url: publicUrl 
