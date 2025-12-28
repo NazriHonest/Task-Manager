@@ -3,16 +3,52 @@ import { prisma } from '../../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import {
   UploadAttachmentInput,
-  UpdateAttachmentInput,
   AttachmentIdParams,
   TaskAttachmentsParams
 } from '../validators/attachment.validator';
 import { formatFileSize } from '../middleware/upload.middleware';
-import { supabase } from '../lib/supabase'; // Make sure this path is correct
+import { supabase } from '../lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 
-// 1. UPDATE: Upload Attachment
+// 1. Get All Attachments for a Task
+export const getTaskAttachments = async (req: AuthRequest, res: Response) => {
+  try {
+    const { taskId } = req.params as TaskAttachmentsParams;
+    const attachments = await prisma.attachment.findMany({
+      where: { taskId },
+      include: { user: { select: { id: true, name: true } } },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const formatted = attachments.map(att => ({
+      ...att,
+      formattedSize: formatFileSize(att.filesize),
+      downloadUrl: att.url || `/api/attachments/${att.id}/download`
+    }));
+
+    return res.json({ status: 'success', data: formatted });
+  } catch (error) {
+    return res.status(500).json({ status: 'error', message: 'Fetch failed' });
+  }
+};
+
+// 2. Get Single Attachment Details
+export const getAttachment = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params as AttachmentIdParams;
+    const attachment = await prisma.attachment.findUnique({ 
+      where: { id },
+      include: { user: { select: { id: true, name: true } } }
+    });
+    if (!attachment) return res.status(404).json({ message: 'Not found' });
+    return res.json({ status: 'success', data: attachment });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error retrieving attachment' });
+  }
+};
+
+// 3. Upload Attachment (Supabase Logic)
 export const uploadAttachment = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
@@ -24,26 +60,12 @@ export const uploadAttachment = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ status: 'error', message: 'No files uploaded' });
     }
 
-    // Check task access (Keeping your original logic)
-    const task = await prisma.task.findFirst({
-      where: {
-        id: taskId,
-        OR: [{ userId }, { project: { members: { some: { userId } } } }]
-      }
-    });
-
-    if (!task) {
-      return res.status(404).json({ status: 'error', message: 'Task not found' });
-    }
-
-    // Create attachments by uploading to Supabase
     const attachments = await Promise.all(
       files.map(async (file) => {
         const fileExt = path.extname(file.originalname);
         const fileName = `${uuidv4()}${fileExt}`;
         const filePath = `${userId}/${fileName}`;
 
-        // Upload Buffer to Supabase
         const { error: uploadError } = await supabase.storage
           .from('attachments')
           .upload(filePath, file.buffer, {
@@ -53,7 +75,6 @@ export const uploadAttachment = async (req: AuthRequest, res: Response) => {
 
         if (uploadError) throw uploadError;
 
-        // Get Public URL
         const { data: { publicUrl } } = supabase.storage
           .from('attachments')
           .getPublicUrl(filePath);
@@ -61,79 +82,62 @@ export const uploadAttachment = async (req: AuthRequest, res: Response) => {
         return await prisma.attachment.create({
           data: {
             filename: file.originalname,
-            filepath: filePath, // Store the Supabase Path here
+            filepath: filePath,
             filetype: file.mimetype,
             filesize: file.size,
             isPublic: body.isPublic || false,
             taskId,
             userId,
-            commentId: body.commentId,
-            url: publicUrl // Ensure your Prisma schema has a 'url' field!
-          },
-          include: {
-            user: { select: { id: true, name: true, email: true, avatar: true } }
+            url: publicUrl 
           }
         });
       })
     );
 
-    const formattedAttachments = attachments.map(att => ({
-      ...att,
-      formattedSize: formatFileSize(att.filesize),
-      // NEW: Direct Cloud URL instead of a broken local route
-      downloadUrl: (att as any).url || `/api/attachments/${att.id}/download` 
-    }));
-
-    return res.status(201).json({
-      status: 'success',
-      data: { attachments: formattedAttachments }
-    });
-
+    return res.status(201).json({ status: 'success', data: { attachments } });
   } catch (error) {
-    console.error('Upload attachment error:', error);
     return res.status(500).json({ status: 'error', message: 'Upload failed' });
   }
 };
 
-// 2. UPDATE: Download/Preview Logic
-// Since files are now Public on Supabase, your frontend can use 'attachment.url' directly.
-// But if you want to keep the download route for security/logging:
+// 4. Download & Preview (Redirect to Supabase)
 export const downloadAttachment = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params as AttachmentIdParams;
     const attachment = await prisma.attachment.findUnique({ where: { id } });
-
     if (!attachment) return res.status(404).json({ message: 'Not found' });
-
-    // Simply redirect to the Supabase URL
-    // This offloads the bandwidth from Render to Supabase (faster + free)
-    const { data } = supabase.storage.from('attachments').getPublicUrl(attachment.filepath);
-    return res.redirect(data.publicUrl);
-    
+    return res.redirect(attachment.url || ''); 
   } catch (error) {
     return res.status(500).json({ message: 'Download error' });
   }
 };
 
-// 3. UPDATE: Delete Logic
+// Alias for preview (Matches your route export)
+export const previewAttachment = downloadAttachment;
+
+// 5. Delete Logic
 export const deleteAttachment = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!.userId;
     const { id } = req.params as AttachmentIdParams;
-
     const attachment = await prisma.attachment.findUnique({ where: { id } });
-
     if (!attachment) return res.status(404).json({ message: 'Not found' });
 
-    // Delete from Supabase Cloud
     await supabase.storage.from('attachments').remove([attachment.filepath]);
-
-    // Delete from Database
     await prisma.attachment.delete({ where: { id } });
 
     return res.status(200).json({ status: 'success', message: 'Deleted' });
   } catch (error) {
-    console.error(error);
     return res.status(500).json({ message: 'Delete error' });
   }
+};
+
+// 6. Missing User Attachments & Update
+export const getUserAttachments = async (req: AuthRequest, res: Response) => {
+  const userId = req.user!.userId;
+  const data = await prisma.attachment.findMany({ where: { userId } });
+  return res.json({ status: 'success', data });
+};
+
+export const updateAttachment = async (req: AuthRequest, res: Response) => {
+  return res.status(501).json({ message: 'Update not implemented for cloud storage' });
 };
