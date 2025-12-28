@@ -2,13 +2,17 @@ import { z } from 'zod';
 
 export const uploadAttachmentSchema = z.object({
   body: z.object({
-    commentId: z.string()
-      .uuid('Invalid comment ID')
-      .optional()
-      .nullable(),
-    isPublic: z.preprocess((val) => val === 'true' || val === true, z.boolean())
-      .default(false)
-      .optional()
+    // Handle commentId: convert empty strings/null-strings to undefined
+    commentId: z.preprocess((val) => {
+      if (val === '' || val === 'null' || val === 'undefined' || val === null) return undefined;
+      return val;
+    }, z.string().uuid('Invalid comment ID').optional().nullable()),
+
+    // Handle isPublic: convert 'true'/'false' strings to actual booleans
+    isPublic: z.preprocess(
+      (val) => val === 'true' || val === true, 
+      z.boolean()
+    ).default(false).optional()
   })
 });
 
