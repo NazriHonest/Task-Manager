@@ -49,54 +49,70 @@ export const getAttachment = async (req: AuthRequest, res: Response) => {
 };
 
 // 3. Upload Attachment (Supabase Logic)
+// attachment.controller.ts
+
 export const uploadAttachment = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const { taskId } = req.params as TaskAttachmentsParams;
-    const body = req.body as UploadAttachmentInput;
+    const { taskId } = req.params;
     const files = req.files as Express.Multer.File[];
 
     if (!files || files.length === 0) {
       return res.status(400).json({ status: 'error', message: 'No files uploaded' });
     }
 
-    const attachments = await Promise.all(
-      files.map(async (file) => {
-        const fileExt = path.extname(file.originalname);
-        const fileName = `${uuidv4()}${fileExt}`;
-        const filePath = `${userId}/${fileName}`;
+    // IMPORTANT: Verify the Task exists before trying to attach files
+    const taskExists = await prisma.task.findUnique({ where: { id: taskId } });
+    if (!taskExists) {
+      console.error(`Task ${taskId} not found in database.`);
+      return res.status(404).json({ status: 'error', message: 'Task not found' });
+    }
 
-        const { error: uploadError } = await supabase.storage
-          .from('attachments')
-          .upload(filePath, file.buffer, {
-            contentType: file.mimetype,
-            upsert: false
-          });
+    const attachments = [];
 
-        if (uploadError) throw uploadError;
+    for (const file of files) {
+      const fileExt = path.extname(file.originalname);
+      const fileName = `${uuidv4()}${fileExt}`;
+      const filePath = `${userId}/${fileName}`;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('attachments')
-          .getPublicUrl(filePath);
-
-        return await prisma.attachment.create({
-          data: {
-            filename: file.originalname,
-            filepath: filePath,
-            filetype: file.mimetype,
-            filesize: file.size,
-            isPublic: String(body.isPublic) === 'true',
-            taskId,
-            userId,
-            url: publicUrl 
-          }
+      // 1. Upload to Supabase
+      const { error: uploadError } = await supabase.storage
+        .from('attachments')
+        .upload(filePath, file.buffer, {
+          contentType: file.mimetype,
+          upsert: false
         });
-      })
-    );
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('attachments')
+        .getPublicUrl(filePath);
+
+      // 2. Save to Database
+      // We use Math.round to ensure filesize is a clean integer for Prisma
+      const newAttachment = await prisma.attachment.create({
+        data: {
+          filename: file.originalname,
+          filepath: filePath,
+          filetype: file.mimetype,
+          filesize: Math.round(file.size), 
+          isPublic: String(req.body.isPublic) === 'true',
+          taskId: taskId, // Ensure this is the UUID string
+          userId: userId,
+          url: publicUrl 
+        }
+      });
+      attachments.push(newAttachment);
+    }
 
     return res.status(201).json({ status: 'success', data: { attachments } });
-  } catch (error) {
-    return res.status(500).json({ status: 'error', message: 'Upload failed' });
+  } catch (error: any) {
+    console.error('DATABASE OR STORAGE ERROR:', error);
+    return res.status(500).json({ 
+      status: 'error', 
+      message: error.message || 'Server failed to process file' 
+    });
   }
 };
 
