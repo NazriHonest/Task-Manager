@@ -6,7 +6,7 @@ export const uploadAttachmentSchema = z.object({
       .uuid('Invalid comment ID')
       .optional()
       .nullable(),
-    isPublic: z.boolean()
+    isPublic: z.preprocess((val) => val === 'true' || val === true, z.boolean())
       .default(false)
       .optional()
   })

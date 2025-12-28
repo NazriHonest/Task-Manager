@@ -27,9 +27,9 @@ router.use(authenticate);
 // Task attachments routes
 router.post(
   '/tasks/:taskId',
+  upload.array('files', 5), // Max 5 files
   validate(taskAttachmentsSchema),
   validate(uploadAttachmentSchema),
-  upload.array('files', 5), // Max 5 files
   uploadAttachment
 );
 
