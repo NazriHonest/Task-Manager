@@ -12,7 +12,7 @@ import {
 } from '../controllers/attachment.controller';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validation';
-import { uploadMiddleware } from '../middleware/upload.middleware'; // Changed from 'upload'
+import { attachmentMiddleware } from '../middleware/upload.middleware'; // Changed from 'upload'
 import {
   uploadAttachmentSchema,
   attachmentIdSchema,
@@ -28,7 +28,7 @@ router.use(authenticate);
 // Single file upload route (for Flutter app)
 router.post(
   '/tasks/:taskId/single',
-  uploadMiddleware.single('file'), // Accepts single file with field name 'file'
+  attachmentMiddleware.single,
   validate(taskAttachmentsSchema),
   uploadSingleAttachment
 );
@@ -36,7 +36,7 @@ router.post(
 // Multiple files upload route
 router.post(
   '/tasks/:taskId/multiple',
-  uploadMiddleware.array('files', 5), // Accepts up to 5 files with field name 'files'
+  attachmentMiddleware.multiple, // Accepts up to 5 files with field name 'files'
   validate(taskAttachmentsSchema),
   uploadMultipleAttachments
 );

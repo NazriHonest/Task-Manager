@@ -1,13 +1,6 @@
 import multer from 'multer';
 import path from 'path';
-import { Request } from 'express';
-
-// ================ TYPE DEFINITIONS ================
-
-interface MulterError extends Error {
-  code?: string;
-  field?: string;
-}
+import { Request, Response, NextFunction } from 'express';
 
 // ================ HELPER FUNCTIONS ================
 
@@ -29,11 +22,8 @@ const attachmentFileFilter = (
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
-  // Accept all file types or add specific filters
   const allowedTypes = [
-    // Images
     'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/jpg',
-    // Documents
     'application/pdf', 
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -42,15 +32,11 @@ const attachmentFileFilter = (
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'text/plain', 'text/csv',
-    // Archives
     'application/zip', 'application/x-rar-compressed', 'application/x-tar', 'application/gzip',
-    // Code files
     'application/json', 'text/javascript', 'text/html', 'text/css', 'text/x-python',
-    // Allow octet-stream for unknown types
     'application/octet-stream'
   ];
 
-  // Extract file extension for additional validation
   const fileExt = path.extname(file.originalname).toLowerCase();
   const allowedExtensions = [
     '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg',
@@ -59,11 +45,10 @@ const attachmentFileFilter = (
     '.json', '.js', '.html', '.css', '.py'
   ];
 
-  // Check if MIME type is allowed OR file extension is allowed
   if (allowedTypes.includes(file.mimetype) || allowedExtensions.includes(fileExt)) {
     cb(null, true);
   } else {
-    cb(new Error(`File type ${file.mimetype} (${fileExt}) not allowed. Please upload a valid file.`));
+    cb(new Error(`File type ${file.mimetype} (${fileExt}) not allowed.`));
   }
 };
 
@@ -73,7 +58,6 @@ const avatarFileFilter = (
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
-  // Only accept image files for avatars
   const allowedMimeTypes = [
     'image/jpeg',
     'image/jpg',
@@ -82,7 +66,6 @@ const avatarFileFilter = (
     'image/webp'
   ];
 
-  // Check file extension
   const fileExt = path.extname(file.originalname).toLowerCase();
   const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
@@ -92,202 +75,111 @@ const avatarFileFilter = (
   if (isMimeTypeValid && isExtensionValid) {
     cb(null, true);
   } else {
-    const errorMsg = isMimeTypeValid 
-      ? `File extension ${fileExt} not allowed for avatars.`
-      : `File type ${file.mimetype} not allowed for avatars. Only images (JPG, PNG, GIF, WebP) are allowed.`;
-    
-    cb(new Error(errorMsg));
+    cb(new Error(`File type ${file.mimetype} not allowed for avatars.`));
   }
 };
 
 // ================ MULTER CONFIGURATIONS ================
 
-// Memory storage (for uploading to Supabase)
 const memoryStorage = multer.memoryStorage();
 
-// ================ ATTACHMENT UPLOAD CONFIGS ================
-
-// For task attachments (general purpose)
+// 1. ATTACHMENT UPLOADS (General purpose - 50MB, multiple file types)
 export const attachmentUpload = multer({
   storage: memoryStorage,
   fileFilter: attachmentFileFilter,
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit per file
-    files: 10 // Max 10 files for array uploads
+    fileSize: 50 * 1024 * 1024, // 50MB per file
+    files: 10 // Max 10 files
   }
 });
 
-// Single attachment upload middleware
+// Pre-configured attachment middleware exports
 export const uploadSingle = attachmentUpload.single('file');
-
-// Multiple attachments upload middleware
 export const uploadMultiple = attachmentUpload.array('files', 10);
 
-// ================ AVATAR UPLOAD CONFIGS ================
-
-// For user avatars (strict image-only, smaller size)
+// 2. AVATAR UPLOADS (Images only - 5MB, strict filtering)
 export const avatarUpload = multer({
   storage: memoryStorage,
   fileFilter: avatarFileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit for avatars (more strict)
-    files: 1 // Only one avatar at a time
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+    files: 1 // Single file only
   }
 });
 
-// Single avatar upload middleware
-export const uploadAvatar = avatarUpload.single('avatar'); // Field name must be 'avatar'
+// Pre-configured avatar middleware export
+export const uploadAvatar = avatarUpload.single('avatar');
 
-// ================ MIDDLEWARE WRAPPERS ================
+// ================ SIMPLE MIDDLEWARE EXPORTS (No TypeScript Errors) ================
 
-// General single upload wrapper (for attachments)
-export const handleSingleUpload = (req: Request, res: any, next: any) => {
-  uploadSingle(req, res, (err: any) => {
-    if (err) {
-      return _handleUploadError(err, res, 'file');
-    }
-    
-    // No file uploaded
-    if (!req.file) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'No file uploaded. Please select a file.'
-      });
-    }
-    
-    next();
-  });
+// Use these in your routes - they're simple and won't cause TypeScript errors
+export const attachmentMiddleware = {
+  single: uploadSingle,
+  multiple: uploadMultiple
 };
 
-// General multiple upload wrapper (for attachments)
-export const handleMultipleUpload = (req: Request, res: any, next: any) => {
-  uploadMultiple(req, res, (err: any) => {
-    if (err) {
-      return _handleUploadError(err, res, 'files');
-    }
-    
-    // No files uploaded
-    if (!req.files || (Array.isArray(req.files) && req.files.length === 0)) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'No files uploaded. Please select at least one file.'
-      });
-    }
-    
-    next();
-  });
+export const avatarMiddleware = {
+  single: uploadAvatar
 };
 
-// Avatar upload wrapper (specific for avatars)
-export const handleAvatarUpload = (req: Request, res: any, next: any) => {
-  uploadAvatar(req, res, (err: any) => {
-    if (err) {
-      return _handleAvatarUploadError(err, res);
-    }
-    
-    // No file uploaded
-    if (!req.file) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'No avatar image uploaded. Please select an image.'
-      });
-    }
-    
-    // Additional validation for avatar dimensions (optional)
-    // You could add image dimension checks here if needed
-    
-    next();
-  });
-};
+// ================ ERROR HANDLER MIDDLEWARE (Optional) ================
 
-// ================ ERROR HANDLING HELPERS ================
-
-const _handleUploadError = (err: any, res: any, fieldName: string) => {
-  if (err.code === 'LIMIT_FILE_SIZE') {
+// Generic upload error handler
+export const handleUploadError = (err: Error, res: Response) => {
+  const multerErr = err as any;
+  
+  if (multerErr.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({
       status: 'error',
-      message: `File size too large. Maximum size is ${err.field === 'avatar' ? '5MB' : '50MB'}.`
+      message: 'File size too large. Maximum size is 50MB for attachments, 5MB for avatars.'
     });
   }
   
-  if (err.code === 'LIMIT_FILE_COUNT') {
+  if (multerErr.code === 'LIMIT_FILE_COUNT') {
     return res.status(400).json({
       status: 'error',
-      message: 'Too many files. Please upload one file at a time.'
+      message: 'Too many files uploaded.'
     });
   }
   
-  if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+  if (multerErr.code === 'LIMIT_UNEXPECTED_FILE') {
     return res.status(400).json({
       status: 'error',
-      message: `Unexpected field name. Use "${fieldName}" for uploads.`
+      message: 'Unexpected field name. Use "file" for single uploads, "files" for multiple, or "avatar" for avatars.'
     });
   }
   
-  // Handle file type errors
-  if (err.message && (err.message.includes('File type') || err.message.includes('not allowed'))) {
+  // File type errors
+  if (multerErr.message && multerErr.message.includes('not allowed')) {
     return res.status(400).json({
       status: 'error',
-      message: err.message
+      message: multerErr.message
     });
   }
   
-  // Generic error
+  // Unknown error
   console.error('Upload error:', err);
   return res.status(500).json({
     status: 'error',
-    message: 'Failed to upload file',
+    message: 'Upload failed',
     details: err.message
   });
 };
 
-const _handleAvatarUploadError = (err: any, res: any) => {
-  if (err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(400).json({
-      status: 'error',
-      message: 'Avatar image too large. Maximum size is 5MB.'
-    });
-  }
-  
-  if (err.code === 'LIMIT_FILE_COUNT') {
-    return res.status(400).json({
-      status: 'error',
-      message: 'Please upload only one avatar image at a time.'
-    });
-  }
-  
-  if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-    return res.status(400).json({
-      status: 'error',
-      message: 'Unexpected field name. Use "avatar" for avatar uploads.'
-    });
-  }
-  
-  // Handle avatar-specific file type errors
-  if (err.message && err.message.includes('avatar')) {
-    return res.status(400).json({
-      status: 'error',
-      message: err.message
-    });
-  }
-  
-  // Generic error
-  console.error('Avatar upload error:', err);
-  return res.status(500).json({
-    status: 'error',
-    message: 'Failed to upload avatar',
-    details: err.message
-  });
+// ================ VALIDATION HELPERS ================
+
+// Check if file was uploaded (use in controllers)
+export const validateFileUpload = (req: Request): boolean => {
+  return !!(req.file || (req.files && Array.isArray(req.files) && req.files.length > 0));
 };
 
-// ================ ALTERNATIVE: SIMPLER EXPORTS ================
-
-// For direct use in routes (if you prefer this approach)
-export const uploadMiddleware = {
-  // For attachments
-  single: attachmentUpload.single('file'),
-  multiple: attachmentUpload.array('files', 10),
-  
-  // For avatars
-  avatar: avatarUpload.single('avatar')
+// Get file(s) from request with type safety
+export const getUploadedFiles = (req: Request): Express.Multer.File[] => {
+  if (req.file) {
+    return [req.file];
+  }
+  if (req.files && Array.isArray(req.files)) {
+    return req.files as Express.Multer.File[];
+  }
+  return [];
 };

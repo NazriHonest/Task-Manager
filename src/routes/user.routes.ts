@@ -9,7 +9,7 @@ import {
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 import { updateProfileSchema } from '../validators/auth.validator';
-import { handleAvatarUpload } from '../middleware/upload.middleware'; // Import the avatar handler
+import { avatarMiddleware } from '../middleware/upload.middleware'; // Import the avatar handler
 
 const router = Router();
 
@@ -22,7 +22,7 @@ router.put('/password', authenticate, changePassword);
 router.post(
   '/avatar', 
   authenticate, 
-  handleAvatarUpload, // Use avatar-specific middleware
+  avatarMiddleware.single, // Use avatar-specific middleware
   uploadAvatar
 );
 
