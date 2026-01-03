@@ -4,6 +4,7 @@ import {
   updateProfile, 
   changePassword, 
   uploadAvatar, 
+  getUserStatistics,
   deleteAccount 
 } from '../controllers/user.controller';
 import { authenticate } from '../middleware/auth';
@@ -17,6 +18,7 @@ const router = Router();
 router.get('/profile', authenticate, getProfile);
 router.put('/profile', authenticate, validate(updateProfileSchema), updateProfile);
 router.put('/password', authenticate, changePassword);
+router.get('/statistics', authenticate, getUserStatistics);
 
 // Avatar upload route with avatar-specific middleware
 router.post(
@@ -25,6 +27,7 @@ router.post(
   avatarMiddleware.single, // Use avatar-specific middleware
   uploadAvatar
 );
+
 
 router.delete('/account', authenticate, deleteAccount);
 

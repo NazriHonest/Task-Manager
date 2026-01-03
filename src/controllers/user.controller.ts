@@ -241,6 +241,62 @@ export const uploadAvatar = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const getUserStatistics = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    
+    // Run all queries in parallel for better performance
+    const [
+      totalTasks,
+      completedTasks,
+      overdueTasks,
+      categories,
+      projects,
+      pendingTasks,
+      inProgressTasks
+    ] = await Promise.all([
+      prisma.task.count({ where: { userId } }),
+      prisma.task.count({ where: { userId, status: 'COMPLETED' } }),
+      prisma.task.count({ 
+        where: { 
+          userId,
+          dueDate: { lt: new Date() },
+          status: { in: ['PENDING', 'IN_PROGRESS'] }
+        }
+      }),
+      prisma.category.count({ where: { userId } }),
+      prisma.project.count({ where: { userId } }),
+      prisma.task.count({ where: { userId, status: 'PENDING' } }),
+      prisma.task.count({ where: { userId, status: 'IN_PROGRESS' } })
+    ]);
+
+    const completionRate = totalTasks > 0 
+      ? Math.round((completedTasks / totalTasks) * 100)
+      : 0;
+
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        totalTasks,
+        completedTasks,
+        overdueTasks,
+        pendingTasks,
+        inProgressTasks,
+        categories,
+        projects,
+        completionRate
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Get user statistics error:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch user statistics'
+    });
+  }
+};
+
 // Delete account
 export const deleteAccount = async (req: AuthRequest, res: Response) => {
   try {
@@ -296,3 +352,4 @@ export const deleteAccount = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
