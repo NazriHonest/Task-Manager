@@ -3,6 +3,9 @@ import { prisma }  from '../../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { UpdateProfileInput } from '../validators/auth.validator';
 import { AuthUtils } from '../utils/auth.utils';  // ← Fix import here
+import { supabase } from '../lib/supabase';
+import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
 
 //const PrismaClient = new prisma();
 
@@ -152,37 +155,88 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
 export const uploadAvatar = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const { avatarUrl } = req.body;
+    const file = req.file as Express.Multer.File;
 
-    if (!avatarUrl) {
+    // Validate file
+    if (!file) {
       return res.status(400).json({
         status: 'error',
-        message: 'Avatar URL is required'
+        message: 'No file uploaded. Use field name "avatar" for upload.'
       });
     }
 
+    // Validate file type (images only)
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.mimetype)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Only image files are allowed (JPEG, PNG, GIF, WebP)'
+      });
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'File size exceeds 5MB limit'
+      });
+    }
+
+    const fileExt = path.extname(file.originalname);
+    const fileName = `${uuidv4()}${fileExt}`;
+    
+    // Store in avatars bucket, organized by user ID
+    const filePath = `${userId}/${fileName}`;
+
+    // Upload to Supabase avatars bucket
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')  // Use 'avatars' bucket instead of 'attachments'
+      .upload(filePath, file.buffer, {
+        contentType: file.mimetype,
+        upsert: true  // Overwrite if exists
+      });
+
+    if (uploadError) {
+      console.error('Supabase upload error:', uploadError);
+      return res.status(500).json({
+        status: 'error',
+        message: `Failed to upload avatar: ${uploadError.message}`
+      });
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('avatars')  // Get URL from avatars bucket
+      .getPublicUrl(filePath);
+
+    // Update user's avatar URL in database
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { avatar: avatarUrl },
+      data: { avatar: publicUrl },
       select: {
         id: true,
-        name: true,
         email: true,
-        avatar: true
+        name: true,
+        avatar: true,
+        createdAt: true,
+        updatedAt: true
       }
     });
 
     return res.status(200).json({
       status: 'success',
-      message: 'Avatar updated successfully',
-      data: { user: updatedUser }
+      data: {
+        user: updatedUser,
+        avatarUrl: publicUrl
+      }
     });
 
-  } catch (error) {
-    console.error('Upload avatar error:', error);
+  } catch (error: any) {
+    console.error('Avatar upload error:', error);
     return res.status(500).json({
       status: 'error',
-      message: 'Internal server error'
+      message: error.message || 'Failed to upload avatar'
     });
   }
 };

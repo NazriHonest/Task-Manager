@@ -9,6 +9,7 @@ import {
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 import { updateProfileSchema } from '../validators/auth.validator';
+import { handleAvatarUpload } from '../middleware/upload.middleware'; // Import the avatar handler
 
 const router = Router();
 
@@ -16,7 +17,15 @@ const router = Router();
 router.get('/profile', authenticate, getProfile);
 router.put('/profile', authenticate, validate(updateProfileSchema), updateProfile);
 router.put('/password', authenticate, changePassword);
-router.post('/avatar', authenticate, uploadAvatar);
+
+// Avatar upload route with avatar-specific middleware
+router.post(
+  '/avatar', 
+  authenticate, 
+  handleAvatarUpload, // Use avatar-specific middleware
+  uploadAvatar
+);
+
 router.delete('/account', authenticate, deleteAccount);
 
 export default router;
